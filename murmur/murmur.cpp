@@ -25,8 +25,8 @@
 #include <fstream>
 #include <iostream>
 #include <sys/stat.h>
-#include "unzip.h"
-#include "crypt.h"
+#include "include/unzip.h"
+#include "include/crypt.h"
 
 #if PY_MAJOR_VERSION >= 3
 #define IS_PY3K
