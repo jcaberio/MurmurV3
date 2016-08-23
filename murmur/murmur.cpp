@@ -17,8 +17,8 @@
 // It will not produce the same results on little-endian and big-endian
 //    machines.
 //
-// It would be fairly simple, I believe to swap out implementations based on 
-// the alignment and if your machine is little or big endian.  However, those 
+// It would be fairly simple, I believe to swap out implementations based on
+// the alignment and if your machine is little or big endian.  However, those
 // are not in this implementation.
 
 #include <Python.h>
@@ -27,6 +27,10 @@
 #include <sys/stat.h>
 #include "unzip.h"
 #include "crypt.h"
+
+#if PY_MAJOR_VERSION >= 3
+#define IS_PY3K
+#endif
 
 using namespace std;
 
@@ -38,28 +42,28 @@ static unsigned int murmur_initialize(unsigned int len, unsigned int seed) {
 }
 
 static unsigned int murmur_loop(const unsigned char * buffer, unsigned int len, unsigned int h) {
-    
+
     while(len >= 4) {
 		unsigned int k = *(unsigned int *)buffer;
 
-		k *= m; 
-		k ^= k >> r; 
-		k *= m; 
-		
-		h *= m; 
+		k *= m;
+		k ^= k >> r;
+		k *= m;
+
+		h *= m;
 		h ^= k;
 
 		buffer += 4;
 		len -= 4;
-	}	
-    
+	}
+
     switch(len) {
 	case 3: h ^= buffer[2] << 16;
 	case 2: h ^= buffer[1] << 8;
 	case 1: h ^= buffer[0];
 	        h *= m;
 	};
-	
+
 	return h;
 }
 
@@ -72,12 +76,12 @@ static unsigned int murmur_finalize(unsigned int h) {
 }
 
 static unsigned int MurmurHash2_String( const void * key, int len, unsigned int seed ) {
-    
+
     unsigned int cur = murmur_initialize(len, seed);
 	const unsigned char * data = (const unsigned char *)key;
     cur = murmur_loop(data, len, cur);
     return murmur_finalize(cur);
-} 
+}
 
 static unsigned int MurmurHash2_Stream(ifstream &stream, unsigned int seed) {
 
@@ -91,7 +95,7 @@ static unsigned int MurmurHash2_Stream(ifstream &stream, unsigned int seed) {
 	while(!stream.eof()) {
 		stream.read(buffer, 4096);
 		unsigned int chunklen = stream.gcount();
-	    cur = murmur_loop((const unsigned char *)&buffer[0], chunklen, cur);		
+	    cur = murmur_loop((const unsigned char *)&buffer[0], chunklen, cur);
 	}
 
 	return murmur_finalize(cur);
@@ -102,9 +106,9 @@ static unsigned int MurmurHash2_ResampledStream(ifstream &stream, unsigned int s
 	stream.seekg(0, ios::end);
 	unsigned int len = stream.tellg();
 	stream.seekg (0, ios::beg);
-    
+
     char* buffer = new char[len];
-	
+
     stream.read(buffer, len);
 
     int j = 0;
@@ -118,42 +122,42 @@ static unsigned int MurmurHash2_ResampledStream(ifstream &stream, unsigned int s
             case 0x09:
                 copy = false;
         }
-        
+
         if (copy) {
             buffer[j++] = buffer[x];
         }
     }
-    
+
 	unsigned int cur = murmur_initialize(j, seed);
-	cur = murmur_loop((const unsigned char *)&buffer[0], j, cur);			
-	
+	cur = murmur_loop((const unsigned char *)&buffer[0], j, cur);
+
     delete buffer;
-	
+
 	return murmur_finalize(cur);
 }
 
 
 static unsigned int MurmurHash2_ZipStream(unzFile &stream, uLong len, unsigned int seed)
 {
-	
+
  	char buffer[4096];
 	unsigned int cur = murmur_initialize(len, seed);
-	
+
 	while(true) {
 		unsigned int chunklen = unzReadCurrentFile(stream, buffer, 4096);
 		if(chunklen == 0) break;
-		cur = murmur_loop((const unsigned char *)&buffer[0], chunklen, cur);			
+		cur = murmur_loop((const unsigned char *)&buffer[0], chunklen, cur);
 	}
-	
+
 	return murmur_finalize(cur);
-} 
+}
 
 
 static unsigned int MurmurHash2_ResampledZipStream(unzFile &stream, uLong len, unsigned int seed)
 {
-	
+
     unsigned char * buffer = new unsigned char [len];
-	
+
  	unsigned int chunklen = unzReadCurrentFile(stream, buffer, len);
 
     int j = 0;
@@ -167,29 +171,29 @@ static unsigned int MurmurHash2_ResampledZipStream(unzFile &stream, uLong len, u
             case 0x09:
                 copy = false;
         }
-        
+
         if (copy) {
             buffer[j++] = buffer[x];
         }
     }
- 	
+
 	unsigned int cur = murmur_initialize(j, seed);
-	cur = murmur_loop((const unsigned char *)&buffer[0], j, cur);			
-	
+	cur = murmur_loop((const unsigned char *)&buffer[0], j, cur);
+
     delete buffer;
-	
+
 	return murmur_finalize(cur);
 }
 
 static PyObject * murmur_file_hash(PyObject *self, PyObject *args) {
-	
+
 	unsigned int seed = 0;
 	const char *filename;
 	ifstream in;
-	
+
 	if (!PyArg_ParseTuple(args, (char *)"s|I", &filename, &seed))
 		return NULL;
-	
+
 	in.open(filename, ios::in | ios::binary);
 	if (!in.good()) {
 		PyErr_SetString(PyExc_RuntimeError, "Unable to open file");
@@ -198,19 +202,19 @@ static PyObject * murmur_file_hash(PyObject *self, PyObject *args) {
 	} else {
 		seed = MurmurHash2_Stream(in, seed);
 	}
-	in.close();	
+	in.close();
 	return Py_BuildValue("I", seed);
 }
 
 static PyObject * murmur_resampled_file_hash(PyObject *self, PyObject *args) {
-	
+
 	unsigned int seed = 0;
 	const char *filename;
 	ifstream in;
-	
+
 	if (!PyArg_ParseTuple(args, (char *)"s|I", &filename, &seed))
 		return NULL;
-	
+
 	in.open(filename, ios::in | ios::binary);
 	if (!in.good()) {
 		PyErr_SetString(PyExc_RuntimeError, "Unable to open file");
@@ -219,7 +223,7 @@ static PyObject * murmur_resampled_file_hash(PyObject *self, PyObject *args) {
 	} else {
 		seed = MurmurHash2_ResampledStream(in, seed);
 	}
-	in.close();	
+	in.close();
 	return Py_BuildValue("I", seed);
 }
 
@@ -237,22 +241,22 @@ static PyObject * murmur_zip_fingerprint(PyObject *self, PyObject *args) {
 	unsigned int seed = 0;
 	unz_file_info info;
 	char currentFilename[1024];
-	
+
 	PyObject* result = PyDict_New();
-	
+
 	if (!PyArg_ParseTuple(args, (char *)"s|I", &filename, &seed))
 		return NULL;
-		
+
 	unzFile zip;
 	if (!(zip = unzOpen(filename))) {
 		PyErr_SetString(PyExc_RuntimeError, "Unable to open file");
 		return NULL;
-	}	
-	
+	}
+
 	int rv = unzGoToFirstFile(zip);
 	while (rv == UNZ_OK) {
 		if (unzGetCurrentFileInfo(zip, &info, currentFilename, 1024, NULL, 0, NULL, 0) != UNZ_OK) break;
-		
+
 		if(unzOpenCurrentFile(zip) != UNZ_OK) {
 			PyErr_SetString(PyExc_RuntimeError, "Unable to open file in zip; corrupted zip?");
 			unzClose(zip);
@@ -267,8 +271,8 @@ static PyObject * murmur_zip_fingerprint(PyObject *self, PyObject *args) {
 			unzClose(zip);
 			return NULL;
 		}
-		
-		PyDict_SetItem(result, Py_BuildValue("s", currentFilename), Py_BuildValue("I", hash));			
+
+		PyDict_SetItem(result, Py_BuildValue("s", currentFilename), Py_BuildValue("I", hash));
 		rv = unzGoToNextFile(zip);
 	}
 	unzClose(zip);
@@ -280,22 +284,22 @@ static PyObject * murmur_resampled_zip_hashes(PyObject *self, PyObject *args) {
 	unsigned int seed = 0;
 	unz_file_info info;
 	char currentFilename[1024];
-	
+
 	PyObject* result = PyDict_New();
-	
+
 	if (!PyArg_ParseTuple(args, (char *)"s|I", &filename, &seed))
 		return NULL;
-		
+
 	unzFile zip;
 	if (!(zip = unzOpen(filename))) {
 		PyErr_SetString(PyExc_RuntimeError, "Unable to open file");
 		return NULL;
-	}	
-	
+	}
+
 	int rv = unzGoToFirstFile(zip);
 	while (rv == UNZ_OK) {
 		if (unzGetCurrentFileInfo(zip, &info, currentFilename, 1024, NULL, 0, NULL, 0) != UNZ_OK) break;
-		
+
 		if(unzOpenCurrentFile(zip) != UNZ_OK) {
 			PyErr_SetString(PyExc_RuntimeError, "Unable to open file in zip; corrupted zip?");
 			unzClose(zip);
@@ -310,8 +314,8 @@ static PyObject * murmur_resampled_zip_hashes(PyObject *self, PyObject *args) {
 			unzClose(zip);
 			return NULL;
 		}
-		
-		PyDict_SetItem(result, Py_BuildValue("s", currentFilename), Py_BuildValue("I", hash));			
+
+		PyDict_SetItem(result, Py_BuildValue("s", currentFilename), Py_BuildValue("I", hash));
 		rv = unzGoToNextFile(zip);
 	}
 	unzClose(zip);
@@ -327,10 +331,17 @@ static PyMethodDef MurmurMethods[] = {
 	{NULL, NULL, 0, NULL}
 };
 
+static struct PyModuleDef murmur_module_definition = {
+    PyModuleDef_HEAD_INIT,
+    "murmur",
+    "Python 3 port of Murmur",
+    -1,
+    MurmurMethods
+};
 
-PyMODINIT_FUNC initmurmur(void)
-{
-    (void) Py_InitModule("murmur", MurmurMethods);
+PyMODINIT_FUNC PyInit_murmur(void){
+    Py_Initialize();
+    return PyModule_Create(&murmur_module_definition);
 }
 
 int main(int argc, char *argv[]) {}
