@@ -56,6 +56,8 @@ setup(
 	],
     platforms='any',
     classifiers=[
+	    'Programming Language :: Python',
+	    'Programming Language :: Python :: 3',
         'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: MIT License',
