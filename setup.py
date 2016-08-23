@@ -38,7 +38,7 @@ setup(
     author_email='jorick.caberio@voyagerinnovation, kaelten@gmail.com',
     description='Provides fast murmur hashes for strings, files, and ziped files in Python 3.',
 	url = 'https://github.com/jcaberio/MurmurV3',
-	download_url = 'https://github.com/jcaberio/MurmurV3/tarball/0.1',
+	download_url = 'https://github.com/jcaberio/MurmurV3/tarball/0.3',
     zip_safe=False, # I'm not sure if it is egg safe so I'm erring on the side of caution.
     long_description=__doc__,
 	ext_modules = [
