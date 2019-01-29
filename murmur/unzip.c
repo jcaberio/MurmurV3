@@ -153,7 +153,7 @@ typedef struct
 
 
 #ifndef NOUNCRYPT
-#include "crypt.h"
+#include "murmurcrypt.h"
 #endif
 
 /* ===========================================================================
