@@ -95,6 +95,9 @@ static unsigned int MurmurHash2_Stream(ifstream &stream, unsigned int seed) {
 	while(!stream.eof()) {
 		stream.read(buffer, 4096);
 		unsigned int chunklen = stream.gcount();
+		if (!chunklen) {
+			break;
+		}
 	    cur = murmur_loop((const unsigned char *)&buffer[0], chunklen, cur);
 	}
 
