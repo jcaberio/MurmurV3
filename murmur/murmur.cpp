@@ -75,8 +75,7 @@ static unsigned int murmur_finalize(unsigned int h) {
 	return h;
 }
 
-static unsigned int MurmurHash2_String( const void * key, int len, unsigned int seed ) {
-
+static unsigned int MurmurHash2_String( const void * key, Py_ssize_t len, unsigned int seed ) {
     unsigned int cur = murmur_initialize(len, seed);
 	const unsigned char * data = (const unsigned char *)key;
     cur = murmur_loop(data, len, cur);
@@ -184,16 +183,44 @@ static PyObject * murmur_resampled_file_hash(PyObject *self, PyObject *args) {
 
 static PyObject * murmur_string_hash(PyObject *self, PyObject *args) {
 	const char *s;
+	Py_ssize_t len;
+	unsigned int seed = 0;
+	if (!PyArg_ParseTuple(args, "s#", &s, &len))
+		return NULL;
+	return Py_BuildValue("I", MurmurHash2_String(s, len, seed));
+}
+
+static PyObject * murmur_stream_initialize(PyObject *self, PyObject *args) {
+	unsigned int len;
+	unsigned int seed = 0;
+	if (!PyArg_ParseTuple(args, "II", &len, &seed))
+		return NULL;
+	return Py_BuildValue("I", murmur_initialize(len, seed));
+}
+
+
+static PyObject * murmur_stream_iterate(PyObject *self, PyObject *args) {
+	const unsigned char * s;
 	unsigned int len;
 	unsigned int seed = 0;
 	if (!PyArg_ParseTuple(args, "s#|I", &s, &len, &seed))
 		return NULL;
-	return Py_BuildValue("I", MurmurHash2_String(s, len, seed));
+	return Py_BuildValue("I", murmur_loop(s, len, seed));
+}
+
+static PyObject * murmur_stream_finalize(PyObject *self, PyObject *args) {
+	unsigned int seed = 0;
+	if (!PyArg_ParseTuple(args, "I", &seed))
+		return NULL;
+	return Py_BuildValue("I", murmur_finalize(seed));
 }
 
 static PyMethodDef MurmurMethods[] = {
 	{"file_hash", murmur_file_hash, METH_VARARGS, "Hash a file"},
 	{"resampled_file_hash", murmur_resampled_file_hash, METH_VARARGS, "Resample and then hash a file"},
+	{"initialize", murmur_stream_initialize, METH_VARARGS, "_"},
+	{"iterate", murmur_stream_iterate, METH_VARARGS, "_"},
+	{"finalize", murmur_stream_finalize, METH_VARARGS, "_"},
 	{"string_hash", murmur_string_hash, METH_VARARGS, "Hash a string"},
 	{NULL, NULL, 0, NULL}
 };
