@@ -30,7 +30,7 @@ from setuptools import setup, Extension
 
 setup(
     name='murmurv3-37',
-    version='0.6.0',
+    version='0.6.1',
     license='MIT',
     author='Jorick Caberio, Bryan McLemore',
     description='MurmurV3 for Python 3.7',

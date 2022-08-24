@@ -41,7 +41,7 @@ static unsigned int murmur_initialize(unsigned int len, unsigned int seed) {
     return seed ^ len;
 }
 
-static unsigned int murmur_loop(const unsigned char * buffer, unsigned int len, unsigned int h) {
+static unsigned int murmur_loop(const unsigned char * buffer, Py_ssize_t len, unsigned int h) {
 
     while(len >= 4) {
 		unsigned int k = *(unsigned int *)buffer;
@@ -185,7 +185,7 @@ static PyObject * murmur_string_hash(PyObject *self, PyObject *args) {
 	const char *s;
 	Py_ssize_t len;
 	unsigned int seed = 0;
-	if (!PyArg_ParseTuple(args, "s#", &s, &len))
+	if (!PyArg_ParseTuple(args, "s#|I", &s, &len, &seed))
 		return NULL;
 	return Py_BuildValue("I", MurmurHash2_String(s, len, seed));
 }
@@ -201,7 +201,7 @@ static PyObject * murmur_stream_initialize(PyObject *self, PyObject *args) {
 
 static PyObject * murmur_stream_iterate(PyObject *self, PyObject *args) {
 	const unsigned char * s;
-	unsigned int len;
+	Py_ssize_t len;
 	unsigned int seed = 0;
 	if (!PyArg_ParseTuple(args, "s#|I", &s, &len, &seed))
 		return NULL;
